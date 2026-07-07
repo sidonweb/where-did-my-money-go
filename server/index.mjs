@@ -13,6 +13,7 @@ const scrypt = promisify(crypto.scrypt)
 const port = Number(process.env.PORT ?? 8787)
 const databaseUrl =
   process.env.DATABASE_URL ?? 'postgres://trackyourmoney:trackyourmoney@localhost:5432/trackyourmoney'
+const host = process.env.HOST ?? '0.0.0.0'
 
 const app = express()
 const pool = new Pool({ connectionString: databaseUrl })
@@ -145,10 +146,16 @@ app.get(/^(?!\/api).*/, (_request, response) => {
   response.sendFile(path.join(distDir, 'index.html'))
 })
 
-await initDatabase()
-app.listen(port, () => {
-  console.log(`where did my money go? API listening on http://localhost:${port}`)
-})
+try {
+  await initDatabase()
+  app.listen(port, host, () => {
+    console.log(`where did my money go? listening on ${host}:${port}`)
+  })
+} catch (error) {
+  console.error('Failed to start where did my money go?')
+  console.error(error)
+  process.exit(1)
+}
 
 async function initDatabase() {
   await pool.query(`
