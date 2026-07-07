@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: trackyourmoney-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trackyourmoney
+      POSTGRES_USER: trackyourmoney
+      POSTGRES_PASSWORD: trackyourmoney
+    ports:
+      - "5432:5432"
+    volumes:
+      - trackyourmoney_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trackyourmoney -d trackyourmoney"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  trackyourmoney_pgdata:
