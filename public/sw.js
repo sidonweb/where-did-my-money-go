@@ -1,4 +1,4 @@
-const CACHE_NAME = 'where-did-my-money-go-v1'
+const CACHE_NAME = 'where-did-my-money-go-v2'
 const APP_SHELL = ['/', '/manifest.webmanifest', '/app-icon.svg']
 
 self.addEventListener('install', (event) => {
@@ -18,7 +18,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
-  if (url.pathname.startsWith('/api')) {
+  if (event.request.method !== 'GET' || url.pathname.startsWith('/api') || event.request.headers.has('RSC') || url.searchParams.has('_rsc')) {
     event.respondWith(fetch(event.request))
     return
   }
