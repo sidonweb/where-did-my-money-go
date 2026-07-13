@@ -1,0 +1,18 @@
+import type { Category, SettingsState } from '../types'
+
+export const defaultIncomeCategory: Category = {
+  id: 'income',
+  name: 'Salary / Income',
+  type: 'Income',
+  color: '#16a34a',
+}
+
+export function normalizeSettings(settings: SettingsState): SettingsState {
+  const hasIncomeCategory = settings.categories.some((category) => category.type === 'Income')
+
+  return {
+    ...settings,
+    budgetCycleType: settings.budgetCycleType === 'salary' ? 'salary' : 'calendar',
+    categories: hasIncomeCategory ? settings.categories : [...settings.categories, { ...defaultIncomeCategory }],
+  }
+}

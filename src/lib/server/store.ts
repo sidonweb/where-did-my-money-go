@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import type { AppState, SettingsState, Transaction, User } from '@/types'
 import { pool } from './database'
 import { buildEmptyState } from './default-state'
+import { normalizeSettings } from '@/utils/settings'
 
 type TransactionRow = {
   id: string
@@ -26,7 +27,7 @@ export async function getState(userId: string): Promise<AppState> {
   )
 
   return {
-    settings: settingsResult.rows[0]?.data ?? buildEmptyState().settings,
+    settings: normalizeSettings(settingsResult.rows[0]?.data ?? buildEmptyState().settings),
     transactions: transactionsResult.rows.map((row) => ({
       id: row.id,
       date: toDateString(row.transaction_date),
@@ -41,6 +42,7 @@ export async function getState(userId: string): Promise<AppState> {
 
 export async function saveSettings(userId: string, settings: unknown) {
   validateSettings(settings)
+  const normalizedSettings = normalizeSettings(settings)
   await pool.query(
     `
       insert into user_settings (user_id, data, updated_at)
@@ -48,7 +50,7 @@ export async function saveSettings(userId: string, settings: unknown) {
       on conflict (user_id)
       do update set data = excluded.data, updated_at = now()
     `,
-    [userId, JSON.stringify(settings)],
+    [userId, JSON.stringify(normalizedSettings)],
   )
 }
 
@@ -88,6 +90,7 @@ export async function deleteTransaction(userId: string, id: string) {
 
 export async function replaceState(userId: string, state: unknown) {
   validateState(state)
+  const normalizedSettings = normalizeSettings(state.settings)
   const client = await pool.connect()
   try {
     await client.query('begin')
@@ -99,7 +102,7 @@ export async function replaceState(userId: string, state: unknown) {
         on conflict (user_id)
         do update set data = excluded.data, updated_at = now()
       `,
-      [userId, JSON.stringify(state.settings)],
+      [userId, JSON.stringify(normalizedSettings)],
     )
     for (const transaction of state.transactions) {
       await client.query(
@@ -157,6 +160,25 @@ export async function verifyLogin(email: unknown, password: unknown): Promise<Us
   return { id: row.id, email: row.email, name: row.name }
 }
 
+export async function updateProfile(userId: string, { name }: { name: unknown }): Promise<User> {
+  const displayName = String(name ?? '').trim()
+  if (displayName.length < 2 || displayName.length > 60) throw new Error('Name must be between 2 and 60 characters')
+
+  const result = await pool.query<User>(
+    'update users set name = $2 where id = $1 returning id, email, name',
+    [userId, displayName],
+  )
+  return result.rows[0]
+}
+
+export async function changePassword(userId: string, currentPassword: unknown, newPassword: unknown) {
+  const result = await pool.query<{ password_hash: string }>('select password_hash from users where id = $1', [userId])
+  const row = result.rows[0]
+  if (!row || !(await verifyPassword(String(currentPassword ?? ''), row.password_hash))) throw new Error('Current password is incorrect')
+  const normalizedPassword = validatePassword(newPassword)
+  await pool.query('update users set password_hash = $2 where id = $1', [userId, await hashPassword(normalizedPassword)])
+}
+
 export async function createSession(userId: string) {
   const token = crypto.randomBytes(32).toString('base64url')
   await pool.query('insert into user_sessions (token, user_id, expires_at) values ($1, $2, now() + interval \'30 days\')', [token, userId])
@@ -199,8 +221,17 @@ function validateSettings(settings: unknown): asserts settings is SettingsState 
   if (!Number.isFinite(Number(settings.salary))) throw new Error('Salary is required')
   if (!Number.isFinite(Number(settings.salaryGrowth))) throw new Error('Salary growth is required')
   if (!Number.isFinite(Number(settings.weeklyLimit))) throw new Error('Weekly limit is required')
+  if (settings.budgetCycleType !== undefined && settings.budgetCycleType !== 'calendar' && settings.budgetCycleType !== 'salary') {
+    throw new Error('Budget cycle type must be Calendar Month or Salary Cycle')
+  }
   if (!Array.isArray(settings.categories) || settings.categories.length === 0) throw new Error('At least one category is required')
   if (!Array.isArray(settings.paymentModes) || settings.paymentModes.length === 0) throw new Error('At least one payment mode is required')
+  for (const category of settings.categories) {
+    if (!isRecord(category) || !String(category.id ?? '').trim() || !String(category.name ?? '').trim()) throw new Error('Invalid category')
+    if (category.type !== 'Need' && category.type !== 'Want' && category.type !== 'Saving' && category.type !== 'Income') {
+      throw new Error('Invalid category type')
+    }
+  }
 }
 
 function validateTransaction(transaction: unknown): asserts transaction is Transaction {

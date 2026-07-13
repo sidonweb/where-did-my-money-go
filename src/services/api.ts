@@ -37,6 +37,14 @@ export async function logout() {
   })
 }
 
+export async function updateProfile(input: { name: string }) {
+  return request<User>('/api/profile', { method: 'PUT', body: JSON.stringify(input) })
+}
+
+export async function changePassword(input: { currentPassword: string; newPassword: string }) {
+  await request<{ success: true }>('/api/profile/password', { method: 'PUT', body: JSON.stringify(input) })
+}
+
 export async function saveSettings(settings: SettingsState) {
   return requestState('/api/settings', {
     method: 'PUT',
@@ -67,6 +75,10 @@ export async function resetState() {
 }
 
 async function requestState(path: string, init: RequestInit = {}) {
+  return request<AppState>(path, init)
+}
+
+async function request<T>(path: string, init: RequestInit = {}) {
   const token = localStorage.getItem(authTokenKey)
   const response = await fetch(path, {
     ...init,
@@ -80,7 +92,7 @@ async function requestState(path: string, init: RequestInit = {}) {
     const payload = await readJson<{ error?: string }>(response)
     throw new Error(payload?.error ?? `Request failed with ${response.status}`)
   }
-  return readJson<AppState>(response)
+  return readJson<T>(response)
 }
 
 async function readJson<T>(response: Response): Promise<T> {

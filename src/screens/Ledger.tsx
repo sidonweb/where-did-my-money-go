@@ -35,6 +35,9 @@ export function Ledger({
   const [typeFilter, setTypeFilter] = useState<'All' | BudgetType>('All')
   const [draft, setDraft] = useState(emptyDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const incomeCategories = settings.categories.filter((category) => category.type === 'Income')
+  const spendingCategories = settings.categories.filter((category) => category.type !== 'Income')
+  const isIncomeDraft = categoryById.get(draft.categoryId)?.type === 'Income'
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -54,21 +57,27 @@ export function Ledger({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const amount = Number(draft.amount)
-    if (!draft.description.trim() || !draft.categoryId || !Number.isFinite(amount) || amount <= 0) {
-      toast.error('Check the entry', { description: 'Description, category, and an amount greater than zero are required.' })
+    const description = draft.description.trim() || (isIncomeDraft ? 'Income' : '')
+    if (!description || !draft.categoryId || !Number.isFinite(amount) || amount <= 0) {
+      toast.error('Check the entry', { description: `${isIncomeDraft ? 'A date and' : 'Description, category, and'} an amount greater than zero are required.` })
       return
     }
     onUpsert({
       id: editingId ?? createId(),
       date: draft.date,
-      description: draft.description.trim(),
+      description,
       categoryId: draft.categoryId,
       amount,
-      paymentMode: draft.paymentMode,
+      paymentMode: draft.paymentMode || settings.paymentModes[0] || 'Bank Transfer',
       notes: draft.notes.trim(),
     })
-    setDraft({ ...emptyDraft, categoryId: settings.categories[0]?.id ?? '', paymentMode: settings.paymentModes[0] ?? '' })
+    setDraft({ ...emptyDraft, categoryId: spendingCategories[0]?.id ?? settings.categories[0]?.id ?? '', paymentMode: settings.paymentModes[0] ?? '' })
     setEditingId(null)
+  }
+
+  function changeEntryType(value: string) {
+    const categoryId = value === 'income' ? incomeCategories[0]?.id : spendingCategories[0]?.id
+    setDraft({ ...draft, categoryId: categoryId ?? draft.categoryId })
   }
 
   function edit(transaction: Transaction) {
@@ -88,23 +97,29 @@ export function Ledger({
       <Card>
         <CardHeader><PanelHeader title={editingId ? 'Edit Entry' : 'New Entry'} action="Daily tracker" /></CardHeader>
         <CardContent><form className="grid gap-4" onSubmit={submit}>
+          <Field label="Entry Type">
+            <Select value={isIncomeDraft ? 'income' : 'spending'} onValueChange={changeEntryType}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>
+              <SelectItem value="spending">Expense / Saving</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+            </SelectContent></Select>
+          </Field>
           <Field label="Date" htmlFor="entry-date"><Input id="entry-date" type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></Field>
-          <Field label="Description" htmlFor="entry-description"><Input id="entry-description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="e.g. Groceries" /></Field>
-          <Field label="Category">
+          <Field label={isIncomeDraft ? 'Description (optional)' : 'Description'} htmlFor="entry-description"><Input id="entry-description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder={isIncomeDraft ? 'e.g. Monthly salary' : 'e.g. Groceries'} /></Field>
+          {!isIncomeDraft && <Field label="Category">
             <Select value={draft.categoryId} onValueChange={(value) => setDraft({ ...draft, categoryId: value })}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>
-              {settings.categories.map((category) => (
+              {spendingCategories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
               ))}
             </SelectContent></Select>
-          </Field>
+          </Field>}
           <Field label="Amount" htmlFor="entry-amount"><Input id="entry-amount" min="0" step="0.01" type="number" value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} /></Field>
-          <Field label="Payment Mode">
+          {!isIncomeDraft && <Field label="Payment Mode">
             <Select value={draft.paymentMode} onValueChange={(value) => setDraft({ ...draft, paymentMode: value })}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>
               {settings.paymentModes.map((mode) => (
                 <SelectItem key={mode} value={mode}>{mode}</SelectItem>
               ))}
             </SelectContent></Select>
-          </Field>
+          </Field>}
           <Field label="Notes" htmlFor="entry-notes"><Input id="entry-notes" value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Optional" /></Field>
           <div className="flex justify-end gap-2 pt-1">
             {editingId && (

@@ -1,38 +1,50 @@
 import { Cell, Area, AreaChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Clock3 } from 'lucide-react'
 import { KpiCard } from '../components/ui/KpiCard'
 import { PanelHeader } from '../components/ui/PanelHeader'
 import { ProgressRow } from '../components/ui/ProgressRow'
 import type { Category, Transaction } from '../types'
 import { compactMoney, formatDate, formatMoney } from '../utils/format'
-import { buildDailyTrend, buildMonthlyModel, buildSalaryPlans, typeColor } from '../utils/models'
+import { buildDailyTrend, buildMonthlyModel, typeColor } from '../utils/models'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
 
 export function Dashboard({
   monthly,
   dailyTrend,
   categoryById,
-  salaryPlans,
-  selectedYear,
   transactions,
+  cycleIndicator,
+  incomeLabel,
 }: {
   monthly: ReturnType<typeof buildMonthlyModel>
   dailyTrend: ReturnType<typeof buildDailyTrend>
   categoryById: Map<string, Category>
-  salaryPlans: ReturnType<typeof buildSalaryPlans>
-  selectedYear: number
   transactions: Transaction[]
+  cycleIndicator?: { message: string; detail: string }
+  incomeLabel: string
 }) {
-  const currentPlan = salaryPlans.find((plan) => plan.year === selectedYear) ?? salaryPlans[0]
   const latest = transactions.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6)
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,.8fr)]">
       <section className="grid gap-3 sm:grid-cols-2 xl:col-span-2 xl:grid-cols-4">
-        <KpiCard label="Monthly Salary" value={formatMoney(currentPlan.salary)} tone="blue" />
+        <KpiCard label={incomeLabel} value={formatMoney(monthly.salary)} tone="blue" />
         <KpiCard label="Spent" value={formatMoney(monthly.totalActual)} detail={`${monthly.spendRatio.toFixed(0)}% of budget plan`} tone="rose" />
         <KpiCard label="Left" value={formatMoney(monthly.amountLeft)} detail={`${Math.max(monthly.percentageLeft, 0).toFixed(1)}% of income`} tone="green" />
         <KpiCard label="Score" value={`${monthly.score}/10`} detail={monthly.score >= 8 ? 'On track' : 'Needs attention'} tone="amber" />
       </section>
+
+      {cycleIndicator && (
+        <Card className="xl:col-span-2">
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <span className="grid size-9 place-items-center rounded-lg bg-accent text-accent-foreground"><Clock3 size={17} /></span>
+            <div>
+              <strong className="block text-sm font-bold">{cycleIndicator.message}</strong>
+              <span className="text-xs text-muted-foreground">{cycleIndicator.detail}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="min-w-0">
         <CardHeader><PanelHeader title="Daily Spend" action={`${dailyTrend.length} days`} /></CardHeader>
@@ -46,9 +58,9 @@ export function Dashboard({
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="currentColor" className="text-border" vertical={false} />
-              <XAxis dataKey="day" tickLine={false} axisLine={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} />
               <YAxis tickFormatter={(value) => compactMoney(Number(value))} tickLine={false} axisLine={false} width={58} />
-              <Tooltip formatter={(value) => formatMoney(Number(value))} labelFormatter={(label) => `Day ${label}`} />
+              <Tooltip formatter={(value) => formatMoney(Number(value))} labelFormatter={(label) => String(label)} />
               <Area type="monotone" dataKey="spend" stroke="currentColor" className="text-foreground" fill="url(#spendGradient)" strokeWidth={2.5} />
             </AreaChart>
           </ResponsiveContainer>

@@ -3,6 +3,7 @@ import { Pool } from 'pg'
 type DatabaseGlobal = typeof globalThis & {
   moneyDatabaseInit?: Promise<void>
   moneyDatabasePool?: Pool
+  moneyDatabaseVersion?: number
 }
 
 const databaseGlobal = globalThis as DatabaseGlobal
@@ -13,13 +14,18 @@ if (!connectionString) {
 }
 
 export const pool = databaseGlobal.moneyDatabasePool ?? new Pool({ connectionString })
+const databaseVersion = 2
 
 if (process.env.NODE_ENV !== 'production') {
   databaseGlobal.moneyDatabasePool = pool
 }
 
 export function ensureDatabase() {
-  databaseGlobal.moneyDatabaseInit ??= initializeDatabase()
+  if (!databaseGlobal.moneyDatabaseInit || (databaseGlobal.moneyDatabaseVersion ?? 0) < databaseVersion) {
+    databaseGlobal.moneyDatabaseInit = initializeDatabase().then(() => {
+      databaseGlobal.moneyDatabaseVersion = databaseVersion
+    })
+  }
   return databaseGlobal.moneyDatabaseInit
 }
 

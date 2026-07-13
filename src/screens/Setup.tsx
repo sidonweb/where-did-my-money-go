@@ -1,6 +1,5 @@
-import { Download, Plus, Trash2, Upload } from 'lucide-react'
-import { useRef } from 'react'
-import type { ChangeEvent, ReactNode } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { PanelHeader } from '../components/ui/PanelHeader'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
@@ -17,18 +16,12 @@ import { buildSalaryPlans } from '../utils/models'
 export function Setup({
   settings,
   salaryPlans,
-  onImportJson,
   onUpdateSettings,
-  onExportJson,
 }: {
   settings: SettingsState
   salaryPlans: ReturnType<typeof buildSalaryPlans>
-  onImportJson: (file: File) => void
   onUpdateSettings: (settings: Partial<SettingsState>) => void
-  onExportJson: () => void
 }) {
-  const fileInput = useRef<HTMLInputElement | null>(null)
-
   function updateCategory(id: string, patch: Partial<Category>) {
     onUpdateSettings({
       categories: settings.categories.map((category) => (category.id === id ? { ...category, ...patch } : category)),
@@ -67,15 +60,18 @@ export function Setup({
     onUpdateSettings({ paymentModes: settings.paymentModes.filter((_, currentIndex) => currentIndex !== index) })
   }
 
-  function handleFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (file) onImportJson(file)
-    event.target.value = ''
-  }
-
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,.75fr)]">
       <Card><CardHeader><PanelHeader title="Income Plan" action="5 years" /></CardHeader><CardContent className="grid gap-4">
+          <SetupField id="budget-cycle-type" label="Budget Cycle Type">
+            <Select value={settings.budgetCycleType} onValueChange={(value) => onUpdateSettings({ budgetCycleType: value as SettingsState['budgetCycleType'] })}>
+              <SelectTrigger id="budget-cycle-type" className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="calendar">Calendar Month</SelectItem>
+                <SelectItem value="salary">Salary Cycle (credit to credit)</SelectItem>
+              </SelectContent>
+            </Select>
+          </SetupField>
           <SetupField id="start-year" label="Start Year"><Input id="start-year" type="number" value={settings.startYear} onChange={(event) => onUpdateSettings({ startYear: Number(event.target.value) })} /></SetupField>
           <SetupField id="salary" label="Salary"><Input id="salary" type="number" value={settings.salary} onChange={(event) => onUpdateSettings({ salary: Number(event.target.value) })} /></SetupField>
           <SetupField id="growth" label="Annual Growth %"><Input id="growth" type="number" value={settings.salaryGrowth} onChange={(event) => onUpdateSettings({ salaryGrowth: Number(event.target.value) })} /></SetupField>
@@ -123,12 +119,6 @@ export function Setup({
             </div>
           ))}
         </CardContent></Card>
-
-      <Card><CardHeader><PanelHeader title="Portability" action="JSON / CSV" /></CardHeader><CardContent className="flex flex-wrap gap-3">
-          <Button type="button" onClick={onExportJson}><Download size={16} /> Export backup</Button>
-          <Button variant="outline" type="button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Import backup</Button>
-          <Input className="hidden" ref={fileInput} type="file" accept="application/json,.json" onChange={handleFile} />
-      </CardContent></Card>
     </div>
   )
 }

@@ -2,16 +2,11 @@
 
 import { endOfMonth, format, isWithinInterval, parseISO } from 'date-fns'
 import {
-  BookOpen,
   CalendarDays,
-  Download,
   Filter,
   IndianRupee,
   LayoutDashboard,
-  LogOut,
-  RotateCcw,
-  Settings,
-  Moon,
+  UserRound,
   WalletCards,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -22,18 +17,15 @@ import { LaunchScreen } from './components/layout/LaunchScreen'
 import { NavButton } from './components/ui/NavButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/Select'
 import { Label } from './components/ui/label'
-import { ConfirmDialog } from './components/ui/ConfirmDialog'
-import { ThemeToggle } from './components/theme/ThemeToggle'
-import { Button } from './components/ui/Button'
 import { appName, authTokenKey, initialState, monthNames, today } from './data/constants'
 import { Analysis } from './screens/Analysis'
 import { Dashboard } from './screens/Dashboard'
-import { Guide } from './screens/Guide'
 import { Ledger } from './screens/Ledger'
-import { Setup } from './screens/Setup'
+import { Profile } from './screens/Profile'
 import { YearCalendar } from './screens/YearCalendar'
 import {
   authenticate,
+  changePassword,
   fetchSession,
   importState,
   logout,
@@ -41,11 +33,12 @@ import {
   resetState,
   saveSettings,
   saveTransaction,
+  updateProfile,
   type AuthInput,
 } from './services/api'
 import type { ApiStatus, AppState, SettingsState, Tab, Transaction, User } from './types'
-import { downloadFile, escapeCsv } from './utils/format'
-import { buildDailyTrend, buildMonthlyModel, buildSalaryPlans } from './utils/models'
+import { downloadFile, escapeCsv, formatMoney } from './utils/format'
+import { buildBudgetCycles, buildDailyTrend, buildMonthlyModel, buildSalaryPlans, estimateCycleDaysRemaining } from './utils/models'
 
 function App() {
   const pathname = usePathname()
@@ -57,6 +50,7 @@ function App() {
   const tab = getTabFromPath(pathname ?? '/')
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
+  const [selectedCycleId, setSelectedCycleId] = useState('')
   const [apiStatus, setApiStatus] = useState<ApiStatus>('loading')
   const [apiMessage, setApiMessage] = useState('Connecting to PostgreSQL')
   const lastShakeAt = useRef(0)
@@ -129,23 +123,58 @@ function App() {
   const years = useMemo(() => Array.from({ length: 5 }, (_, index) => state.settings.startYear + index), [state.settings.startYear])
   const selectedMonthStart = useMemo(() => new Date(selectedYear, selectedMonth, 1), [selectedYear, selectedMonth])
   const selectedMonthEnd = useMemo(() => endOfMonth(selectedMonthStart), [selectedMonthStart])
-  const monthlyTransactions = useMemo(
+  const budgetCycles = useMemo(() => buildBudgetCycles(state.transactions, categoryById), [categoryById, state.transactions])
+  const availableCycles = useMemo(
+    () => budgetCycles.filter((cycle) => cycle.startDate <= format(today, 'yyyy-MM-dd')),
+    [budgetCycles],
+  )
+  const activeCycle = availableCycles.at(-1)
+  const selectedCycle = availableCycles.find((cycle) => cycle.id === selectedCycleId) ?? activeCycle
+  const salaryCycleMode = state.settings.budgetCycleType === 'salary'
+  const usingSalaryCycle = salaryCycleMode && Boolean(selectedCycle)
+  const periodStart = usingSalaryCycle ? parseISO(selectedCycle!.startDate) : selectedMonthStart
+  const periodEnd = usingSalaryCycle && selectedCycle?.endDate ? parseISO(selectedCycle.endDate) : usingSalaryCycle ? today : selectedMonthEnd
+
+  useEffect(() => {
+    if (!salaryCycleMode || availableCycles.length === 0) return
+    if (!availableCycles.some((cycle) => cycle.id === selectedCycleId)) setSelectedCycleId(availableCycles.at(-1)!.id)
+  }, [availableCycles, salaryCycleMode, selectedCycleId])
+
+  const periodTransactions = useMemo(
     () =>
       state.transactions.filter((transaction) => {
         const date = parseISO(transaction.date)
-        return isWithinInterval(date, { start: selectedMonthStart, end: selectedMonthEnd })
+        return isWithinInterval(date, { start: periodStart, end: periodEnd })
       }),
-    [selectedMonthEnd, selectedMonthStart, state.transactions],
+    [periodEnd, periodStart, state.transactions],
   )
   const monthly = useMemo(
-    () => buildMonthlyModel(monthlyTransactions, state.settings, selectedYear, categoryById),
-    [categoryById, monthlyTransactions, selectedYear, state.settings],
+    () => buildMonthlyModel(periodTransactions, state.settings, selectedYear, categoryById, usingSalaryCycle ? selectedCycle?.income : undefined),
+    [categoryById, periodTransactions, selectedCycle?.income, selectedYear, state.settings, usingSalaryCycle],
   )
   const dailyTrend = useMemo(
-    () => buildDailyTrend(selectedMonthStart, monthlyTransactions, categoryById),
-    [categoryById, monthlyTransactions, selectedMonthStart],
+    () => buildDailyTrend(periodStart, periodEnd, periodTransactions, categoryById),
+    [categoryById, periodEnd, periodStart, periodTransactions],
   )
   const salaryPlans = useMemo(() => buildSalaryPlans(state.settings), [state.settings])
+  const cycleIndicator = useMemo(() => {
+    if (!salaryCycleMode) return undefined
+    if (!selectedCycle) {
+      return {
+        message: 'Cycle length unknown yet',
+        detail: 'Add an Income entry to begin salary-cycle tracking.',
+      }
+    }
+    if (selectedCycle.id !== activeCycle?.id) {
+      return { message: 'Completed salary cycle', detail: `Remaining balance: ${formatMoney(monthly.amountLeft)}` }
+    }
+    const remainingDays = estimateCycleDaysRemaining(budgetCycles, selectedCycle.id, today)
+    return {
+      message: remainingDays === null ? 'Cycle length unknown yet' : `${selectedCycle.endDate ? '' : 'Est. '}${remainingDays} days left in this cycle`,
+      detail: `Remaining balance: ${formatMoney(monthly.amountLeft)}`,
+    }
+  }, [activeCycle?.id, budgetCycles, monthly.amountLeft, salaryCycleMode, selectedCycle])
+  const periodLabel = usingSalaryCycle && selectedCycle ? formatCycleLabel(selectedCycle.startDate, selectedCycle.endDate) : `${monthNames[selectedMonth]} ${selectedYear}`
 
   async function updateSettings(patch: Partial<SettingsState>) {
     const nextSettings = { ...state.settings, ...patch }
@@ -267,8 +296,13 @@ function App() {
     setApiMessage('Signed out')
   }
 
+  async function handleUpdateProfile(input: { name: string }) {
+    const updatedUser = await updateProfile(input)
+    setUser(updatedUser)
+  }
+
   if (!authChecked) {
-    return <LaunchScreen message="Opening your money workspace" />
+    return <LaunchScreen />
   }
 
   if (!authToken || !user) {
@@ -288,51 +322,44 @@ function App() {
           </div>
         </div>
 
-        <nav className="grid grid-cols-6 gap-1 md:mt-10 md:grid-cols-1 md:gap-1.5" aria-label="Primary">
+        <nav className="grid grid-cols-5 gap-1 md:mt-10 md:grid-cols-1 md:gap-1.5" aria-label="Primary">
           <NavButton icon={<LayoutDashboard size={18} />} label="Dashboard" active={tab === 'dashboard'} onClick={() => router.push('/dashboard')} />
           <NavButton icon={<Filter size={18} />} label="Analysis" active={tab === 'analysis'} onClick={() => router.push('/analysis')} />
           <NavButton icon={<WalletCards size={18} />} label="Ledger" active={tab === 'ledger'} onClick={() => router.push('/ledger')} />
           <NavButton icon={<CalendarDays size={18} />} label="Calendar" active={tab === 'calendar'} onClick={() => router.push('/calendar')} />
-          <NavButton icon={<BookOpen size={18} />} label="Guide" active={tab === 'guide'} onClick={() => router.push('/guide')} />
-          <NavButton icon={<Settings size={18} />} label="Setup" active={tab === 'setup'} onClick={() => router.push('/setup')} />
+          <NavButton icon={<UserRound size={18} />} label="Profile" active={tab === 'profile'} onClick={() => router.push('/profile')} />
         </nav>
 
         <div className="mt-auto hidden space-y-2 md:block md:absolute md:right-5 md:bottom-5 md:left-5">
-          <div className="mb-3 flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground"><span className="flex items-center gap-2"><Moon size={14} />Appearance</span><ThemeToggle /></div>
           <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
             <span className={`size-2 rounded-full ${apiStatus === 'online' ? 'bg-foreground' : apiStatus === 'saving' || apiStatus === 'loading' ? 'animate-pulse bg-muted-foreground' : 'bg-destructive'}`} />
             {apiMessage}
           </div>
-          <Button className="w-full" variant="outline" type="button" onClick={exportJson}>
-            <Download size={16} /> Backup
-          </Button>
-          <ConfirmDialog
-            destructive
-            title="Reset your workspace?"
-            description="This permanently replaces your settings and transactions with the default data. Export a backup first if you may need them later."
-            confirmLabel="Reset workspace"
-            onConfirm={() => void resetDemo()}
-            trigger={<Button className="w-full" variant="outline" type="button"><RotateCcw size={16} /> Reset</Button>}
-          />
-          <Button className="w-full text-muted-foreground hover:text-foreground" variant="ghost" type="button" onClick={handleLogout}>
-            <LogOut size={16} /> Sign out
-          </Button>
         </div>
       </aside>
 
       <section className="min-w-0 px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:pt-7 md:pb-8">
         <header className="mb-7 flex flex-col justify-between gap-5 border-b pb-6 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-1 text-[11px] font-extrabold tracking-[.2em] text-primary uppercase">
-              {monthNames[selectedMonth]} {selectedYear}
-            </p>
-            <h1 className="text-3xl font-extrabold tracking-[-.04em] sm:text-4xl">{getTabTitle(tab)}</h1>
+            <p className="mb-1 text-[11px] font-extrabold tracking-[.2em] text-primary uppercase">{tab === 'profile' ? 'Your workspace' : tab === 'dashboard' ? periodLabel : `${monthNames[selectedMonth]} ${selectedYear}`}</p>
+            <h1 className="text-3xl font-extrabold tracking-[-.04em] sm:text-4xl">{tab === 'dashboard' && usingSalaryCycle ? 'This Cycle' : getTabTitle(tab)}</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Welcome back, {user.name} <span className="hidden sm:inline">· {user.email}</span>
+              Hello, {user.name}!
             </p>
           </div>
-          <div className="flex items-end gap-2">
-            <ThemeToggle />
+          {tab === 'dashboard' && usingSalaryCycle ? (
+            <div className="grid gap-1.5">
+              <Label className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Budget Cycle</Label>
+              <Select value={selectedCycle?.id} onValueChange={setSelectedCycleId}>
+                <SelectTrigger className="min-w-52"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {availableCycles.slice().reverse().map((cycle) => (
+                    <SelectItem key={cycle.id} value={cycle.id}>{formatCycleLabel(cycle.startDate, cycle.endDate)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : tab !== 'profile' && <div className="flex items-end gap-2">
             <div className="grid gap-1.5">
               <Label className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Month</Label>
               <Select value={String(selectedMonth)} onValueChange={(value) => setSelectedMonth(Number(value))}>
@@ -347,7 +374,7 @@ function App() {
                 <SelectContent>{years.map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-          </div>
+          </div>}
         </header>
 
         {tab === 'dashboard' && (
@@ -355,9 +382,9 @@ function App() {
             monthly={monthly}
             dailyTrend={dailyTrend}
             categoryById={categoryById}
-            salaryPlans={salaryPlans}
-            selectedYear={selectedYear}
-            transactions={monthlyTransactions}
+            transactions={periodTransactions}
+            cycleIndicator={cycleIndicator}
+            incomeLabel={usingSalaryCycle ? 'Cycle Income' : 'Monthly Salary'}
           />
         )}
         {tab === 'analysis' && (
@@ -380,14 +407,18 @@ function App() {
           />
         )}
         {tab === 'calendar' && <YearCalendar categoryById={categoryById} selectedYear={selectedYear} transactions={state.transactions} />}
-        {tab === 'guide' && <Guide />}
-        {tab === 'setup' && (
-          <Setup
+        {tab === 'profile' && (
+          <Profile
+            user={user}
             settings={state.settings}
             salaryPlans={salaryPlans}
+            onUpdateUser={handleUpdateProfile}
+            onChangePassword={changePassword}
             onImportJson={importJson}
             onUpdateSettings={updateSettings}
             onExportJson={exportJson}
+            onReset={() => void resetDemo()}
+            onLogout={() => void handleLogout()}
           />
         )}
       </section>
@@ -401,17 +432,22 @@ function getTabTitle(tab: Tab) {
     ledger: 'Daily Expense Tracker',
     analysis: 'Weekly Analysis',
     calendar: 'Yearly Calendar',
-    guide: 'Guide',
-    setup: 'Setup',
+    profile: 'Profile & Settings',
   }
   return titles[tab]
 }
 
 function getTabFromPath(pathname: string): Tab {
   const candidate = pathname.split('/').filter(Boolean)[0]
-  return candidate === 'analysis' || candidate === 'ledger' || candidate === 'calendar' || candidate === 'guide' || candidate === 'setup'
+  return candidate === 'analysis' || candidate === 'ledger' || candidate === 'calendar' || candidate === 'profile'
     ? candidate
     : 'dashboard'
+}
+
+function formatCycleLabel(startDate: string, endDate: string | null) {
+  const start = format(parseISO(startDate), 'dd MMM yyyy')
+  const end = endDate ? format(parseISO(endDate), 'dd MMM yyyy') : 'Present'
+  return `${start} - ${end}`
 }
 
 export default App

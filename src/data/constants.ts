@@ -1,9 +1,11 @@
 import { format } from 'date-fns'
-import type { AppState, BudgetType, Category, Transaction } from '../types'
+import type { AppState, BudgetType, Category, SpendingBudgetType, Transaction } from '../types'
 import { createId } from '../utils/id'
+import { defaultIncomeCategory } from '../utils/settings'
 
 export const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-export const budgetTypes: BudgetType[] = ['Need', 'Want', 'Saving']
+export const spendingBudgetTypes: SpendingBudgetType[] = ['Need', 'Want', 'Saving']
+export const budgetTypes: BudgetType[] = [...spendingBudgetTypes, 'Income']
 export const appName = 'where did my money go?'
 export const authTokenKey = 'where-did-my-money-go-auth-token'
 export const today = new Date()
@@ -14,6 +16,7 @@ export const defaultCategories: Category[] = [
   { id: 'performance-growth', name: 'Performance & Growth', type: 'Need', color: '#4f46e5' },
   { id: 'relationships', name: 'Relationships & Generosity', type: 'Want', color: '#e11d48' },
   { id: 'lifestyle', name: 'Lifestyle Enjoyment', type: 'Want', color: '#f59e0b' },
+  defaultIncomeCategory,
 ]
 
 export const emptyDraft = {
@@ -31,6 +34,7 @@ export const initialState: AppState = {
     salary: 0,
     salaryGrowth: 10,
     weeklyLimit: 0,
+    budgetCycleType: 'calendar',
     categories: defaultCategories,
     paymentModes: ['Credit Card', 'Debit Card', 'UPI', 'Cash', 'Bank Transfer'],
   },

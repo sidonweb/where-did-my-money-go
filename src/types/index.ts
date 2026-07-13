@@ -1,4 +1,7 @@
-export type BudgetType = 'Need' | 'Want' | 'Saving'
+export type BudgetType = 'Need' | 'Want' | 'Saving' | 'Income'
+export type SpendingBudgetType = Exclude<BudgetType, 'Income'>
+
+export type BudgetCycleType = 'calendar' | 'salary'
 
 export type Category = {
   id: string
@@ -22,8 +25,16 @@ export type SettingsState = {
   salary: number
   salaryGrowth: number
   weeklyLimit: number
+  budgetCycleType: BudgetCycleType
   categories: Category[]
   paymentModes: string[]
+}
+
+export type BudgetCycle = {
+  id: string
+  startDate: string
+  endDate: string | null
+  income: number
 }
 
 export type AppState = {
@@ -37,6 +48,6 @@ export type User = {
   name: string
 }
 
-export type Tab = 'dashboard' | 'ledger' | 'analysis' | 'calendar' | 'guide' | 'setup'
+export type Tab = 'dashboard' | 'ledger' | 'analysis' | 'calendar' | 'profile'
 
 export type ApiStatus = 'loading' | 'online' | 'offline' | 'saving'

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Label } from '../components/ui/label'
-import { budgetTypes } from '../data/constants'
+import { spendingBudgetTypes } from '../data/constants'
 import type { Category, SettingsState, Transaction } from '../types'
 import { compactMoney, formatMoney } from '../utils/format'
 import { buildPaymentRows, buildWeeklyRows } from '../utils/models'
@@ -46,6 +46,7 @@ export function Analysis({
       transactions.filter((transaction) => {
         const category = categoryById.get(transaction.categoryId)
         const date = parseISO(transaction.date)
+        if (category?.type === 'Income') return false
         if (isBefore(date, range.start) || isAfter(date, range.end)) return false
         if (categoryFilter !== 'All' && categoryFilter !== category?.type && categoryFilter !== category?.id) return false
         if (paymentMode !== 'All' && transaction.paymentMode !== paymentMode) return false
@@ -77,10 +78,10 @@ export function Analysis({
           )}
           <FilterSelect value={categoryFilter} onValueChange={setCategoryFilter} label="Category">
             <SelectItem value="All">All</SelectItem>
-            {budgetTypes.map((type) => (
+            {spendingBudgetTypes.map((type) => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
             ))}
-            {settings.categories.map((category) => (
+            {settings.categories.filter((category) => category.type !== 'Income').map((category) => (
               <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
             ))}
           </FilterSelect>
