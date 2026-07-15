@@ -317,8 +317,7 @@ function App() {
             <IndianRupee size={22} />
           </div>
           <div className="min-w-0">
-            <strong className="block truncate text-sm font-semibold text-foreground">{appName}</strong>
-            <span className="text-[10px] font-medium tracking-[.18em] text-muted-foreground uppercase">Money OS</span>
+            <strong className="block truncate text-sm font-bold text-foreground">WDMMG</strong>
           </div>
         </div>
 
@@ -342,7 +341,7 @@ function App() {
         <header className="mb-7 flex flex-col justify-between gap-5 border-b pb-6 sm:flex-row sm:items-end">
           <div>
             <p className="mb-1 text-[11px] font-extrabold tracking-[.2em] text-primary uppercase">{tab === 'profile' ? 'Your workspace' : tab === 'dashboard' ? periodLabel : `${monthNames[selectedMonth]} ${selectedYear}`}</p>
-            <h1 className="text-3xl font-extrabold tracking-[-.04em] sm:text-4xl">{tab === 'dashboard' && usingSalaryCycle ? 'This Cycle' : getTabTitle(tab)}</h1>
+            <h1 className="text-3xl font-extrabold  sm:text-4xl">{tab === 'dashboard' && usingSalaryCycle ? 'This Cycle' : getTabTitle(tab)}</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Hello, {user.name}!
             </p>

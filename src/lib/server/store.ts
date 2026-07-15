@@ -6,7 +6,7 @@ import { normalizeSettings } from '@/utils/settings'
 
 type TransactionRow = {
   id: string
-  transaction_date: Date | string
+  transaction_date: string
   description: string
   category_id: string
   amount: number | string
@@ -18,7 +18,7 @@ export async function getState(userId: string): Promise<AppState> {
   const settingsResult = await pool.query<{ data: SettingsState }>('select data from user_settings where user_id = $1', [userId])
   const transactionsResult = await pool.query<TransactionRow>(
     `
-      select id, transaction_date, description, category_id, amount, payment_mode, notes
+      select id, transaction_date::text as transaction_date, description, category_id, amount, payment_mode, notes
       from transactions
       where user_id = $1
       order by transaction_date desc, created_at desc
@@ -268,6 +268,6 @@ function hasDatabaseCode(error: unknown, code: string) {
   return isRecord(error) && error.code === code
 }
 
-function toDateString(value: Date | string) {
-  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10)
+function toDateString(value: string) {
+  return value.slice(0, 10)
 }
