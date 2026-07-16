@@ -17,7 +17,7 @@ import { LaunchScreen } from './components/layout/LaunchScreen'
 import { NavButton } from './components/ui/NavButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/Select'
 import { Label } from './components/ui/label'
-import { appName, authTokenKey, initialState, monthNames, today } from './data/constants'
+import { authTokenKey, initialState, monthNames, today } from './data/constants'
 import { Analysis } from './screens/Analysis'
 import { Dashboard } from './screens/Dashboard'
 import { Ledger } from './screens/Ledger'
@@ -89,6 +89,8 @@ function App() {
   }, [authToken])
 
   useEffect(() => {
+    if (!authToken || !user || !state.settings.shakeToOpenLedger) return
+
     let motionPermissionAsked = false
 
     async function requestMotionPermission() {
@@ -117,7 +119,7 @@ function App() {
       window.removeEventListener('pointerdown', requestMotionPermission)
       window.removeEventListener('devicemotion', openLedgerOnShake)
     }
-  }, [router])
+  }, [authToken, router, state.settings.shakeToOpenLedger, user])
 
   const categoryById = useMemo(() => new Map(state.settings.categories.map((category) => [category.id, category])), [state.settings.categories])
   const years = useMemo(() => Array.from({ length: 5 }, (_, index) => state.settings.startYear + index), [state.settings.startYear])

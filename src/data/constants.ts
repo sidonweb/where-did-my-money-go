@@ -35,6 +35,7 @@ export const initialState: AppState = {
     salaryGrowth: 10,
     weeklyLimit: 0,
     budgetCycleType: 'calendar',
+    shakeToOpenLedger: true,
     categories: defaultCategories,
     paymentModes: ['Credit Card', 'Debit Card', 'UPI', 'Cash', 'Bank Transfer'],
   },

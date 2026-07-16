@@ -26,6 +26,7 @@ export type SettingsState = {
   salaryGrowth: number
   weeklyLimit: number
   budgetCycleType: BudgetCycleType
+  shakeToOpenLedger: boolean
   categories: Category[]
   paymentModes: string[]
 }

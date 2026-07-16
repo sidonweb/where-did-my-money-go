@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Download, KeyRound, LogOut, Moon, RotateCcw, Settings, Upload, UserRound } from 'lucide-react'
+import { BookOpen, Download, KeyRound, LogOut, Moon, RotateCcw, Settings, Smartphone, Upload, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '../components/theme/ThemeToggle'
@@ -9,16 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Input } from '../components/ui/Input'
 import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/Switch'
 import type { SettingsState, User } from '../types'
 import { buildSalaryPlans } from '../utils/models'
 import { Guide } from './Guide'
 import { Setup } from './Setup'
 
-type ProfileSection = 'account' | 'setup' | 'guide' | 'backup' | 'appearance'
+type ProfileSection = 'account' | 'setup' | 'preferences' | 'guide' | 'backup' | 'appearance'
 
 const sections = [
   { id: 'account', label: 'Account', icon: UserRound },
   { id: 'setup', label: 'Setup', icon: Settings },
+  { id: 'preferences', label: 'Preferences', icon: Smartphone },
   { id: 'guide', label: 'Guide', icon: BookOpen },
   { id: 'backup', label: 'Backup & reset', icon: Download },
   { id: 'appearance', label: 'Appearance', icon: Moon },
@@ -89,6 +91,21 @@ export function Profile({
     }
   }
 
+  async function updateShakePreference(enabled: boolean) {
+    onUpdateSettings({ shakeToOpenLedger: enabled })
+    if (!enabled || typeof DeviceMotionEvent === 'undefined') return
+
+    const motionEvent = DeviceMotionEvent as unknown as {
+      requestPermission?: () => Promise<'granted' | 'denied'>
+    }
+    const permission = await motionEvent.requestPermission?.().catch(() => 'denied')
+    if (permission === 'denied') {
+      toast.info('Motion access was not granted', {
+        description: 'Shake to open Ledger is enabled, but this browser will not detect shakes until motion access is allowed.',
+      })
+    }
+  }
+
   return (
     <div className="grid gap-5">
       <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Profile sections">
@@ -121,6 +138,31 @@ export function Profile({
       </div>}
 
       {section === 'setup' && <Setup settings={settings} salaryPlans={salaryPlans} onUpdateSettings={onUpdateSettings} />}
+      {section === 'preferences' && <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Quick actions</CardTitle>
+          <CardDescription>Choose how you want to move around Track Your Money.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/40 p-4">
+            <div className="min-w-0">
+              <Label htmlFor="shake-to-open-ledger">Shake to open Ledger</Label>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Shake your device to jump straight to the Ledger. This feature works only on devices with motion support, mainly phones and some tablets, and may also require browser permission.
+              </p>
+            </div>
+            <Switch
+              id="shake-to-open-ledger"
+              checked={settings.shakeToOpenLedger}
+              aria-describedby="shake-to-open-ledger-note"
+              onCheckedChange={(checked) => void updateShakePreference(checked)}
+            />
+          </div>
+          <p id="shake-to-open-ledger-note" className="mt-3 text-xs text-muted-foreground">
+            It may not work on laptops, desktop computers, or browsers that do not provide device-motion access.
+          </p>
+        </CardContent>
+      </Card>}
       {section === 'guide' && <Guide />}
       {section === 'backup' && <div className="grid gap-4 lg:grid-cols-2">
         <Card><CardHeader><CardTitle>Backup your data</CardTitle><CardDescription>Export all settings and transactions, or restore them from a JSON backup.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-3">

@@ -224,6 +224,9 @@ function validateSettings(settings: unknown): asserts settings is SettingsState 
   if (settings.budgetCycleType !== undefined && settings.budgetCycleType !== 'calendar' && settings.budgetCycleType !== 'salary') {
     throw new Error('Budget cycle type must be Calendar Month or Salary Cycle')
   }
+  if (settings.shakeToOpenLedger !== undefined && typeof settings.shakeToOpenLedger !== 'boolean') {
+    throw new Error('Shake to open Ledger must be enabled or disabled')
+  }
   if (!Array.isArray(settings.categories) || settings.categories.length === 0) throw new Error('At least one category is required')
   if (!Array.isArray(settings.paymentModes) || settings.paymentModes.length === 0) throw new Error('At least one payment mode is required')
   for (const category of settings.categories) {

@@ -13,6 +13,7 @@ export function normalizeSettings(settings: SettingsState): SettingsState {
   return {
     ...settings,
     budgetCycleType: settings.budgetCycleType === 'salary' ? 'salary' : 'calendar',
+    shakeToOpenLedger: settings.shakeToOpenLedger !== false,
     categories: hasIncomeCategory ? settings.categories : [...settings.categories, { ...defaultIncomeCategory }],
   }
 }
