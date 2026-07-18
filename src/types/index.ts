@@ -47,8 +47,22 @@ export type User = {
   id: string
   email: string
   name: string
+  plan: 'free' | 'pro'
 }
 
-export type Tab = 'dashboard' | 'ledger' | 'analysis' | 'calendar' | 'profile'
+export type AiChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export type AiUsage = {
+  plan: User['plan']
+  used: number
+  limit: number
+  resetAt: string
+  timezone: 'UTC'
+}
+
+export type Tab = 'dashboard' | 'ledger' | 'analysis' | 'ask-ai' | 'calendar' | 'profile'
 
 export type ApiStatus = 'loading' | 'online' | 'offline' | 'saving'

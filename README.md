@@ -11,6 +11,7 @@ A mobile-first personal finance tracker for recording daily transactions, planni
 - Dashboard KPIs, daily spending trends, category breakdowns, and financial score.
 - Weekly, quarterly, custom-range, category, and payment-mode analysis.
 - Yearly spending heatmap.
+- Ask AI chat grounded in each signed-in user's own financial data through fixed, read-only tools.
 - Configurable income plan, categories, payment modes, and themes.
 - JSON backup and restore, plus CSV transaction export.
 - Installable PWA with a production-generated service worker and offline application shell.
@@ -55,10 +56,12 @@ On PowerShell, use:
 Copy-Item .env.example .env
 ```
 
-4. Set your PostgreSQL connection string in `.env`:
+4. Set your PostgreSQL connection string and server-only OpenAI API key in `.env`:
 
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 5. Start the development server:
@@ -70,6 +73,18 @@ npm run dev
 6. Open [http://localhost:3000](http://localhost:3000).
 
 Database tables and indexes are created automatically when the server first connects. Do not commit `.env` or any real database credentials.
+
+### Ask AI plans (temporary billing stub)
+
+New accounts use the `free` plan (3 Ask AI questions per UTC calendar day). The `pro` plan allows 12 questions per UTC calendar day. The app does not store a user timezone yet, so usage resets at midnight UTC and the exact reset time is shown in the UI.
+
+Until billing is connected, plan changes are intentionally manual and must be made directly in PostgreSQL by an administrator:
+
+```sql
+update users set plan = 'pro' where email = 'person@example.com';
+```
+
+This is a temporary stub to replace with billing-provider entitlement updates (for example, Stripe webhooks). Never expose plan mutation as a public client API.
 
 ## Available Scripts
 
@@ -115,6 +130,8 @@ next.config.mjs          Next.js and production PWA configuration
 - Passwords are hashed before storage.
 - Authentication tokens and theme preference are stored on the current device.
 - Financial API responses are excluded from PWA runtime caching.
+- The OpenAI API key and all model calls stay server-side. The model receives only concise results from four fixed read-only functions and never receives database or SQL access.
+- Ask AI conversation context is kept in browser memory only and limited to the six most recent messages sent with a question; full transcripts are not persisted.
 - The offline shell does not provide offline database writes or synchronization.
 
 Use development accounts and sample data when testing. Never include real financial exports, credentials, or database dumps in issues or pull requests.

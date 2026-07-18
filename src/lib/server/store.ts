@@ -140,7 +140,7 @@ export async function createUser({ email, password, name }: { email: unknown; pa
 
   try {
     const result = await pool.query<User>(
-      `insert into users (id, email, name, password_hash) values ($1, $2, $3, $4) returning id, email, name`,
+      `insert into users (id, email, name, password_hash) values ($1, $2, $3, $4) returning id, email, name, plan`,
       [userId, normalizedEmail, displayName, passwordHash],
     )
     await replaceState(userId, buildEmptyState())
@@ -154,10 +154,10 @@ export async function createUser({ email, password, name }: { email: unknown; pa
 export async function verifyLogin(email: unknown, password: unknown): Promise<User> {
   const normalizedEmail = normalizeEmail(email)
   const normalizedPassword = String(password ?? '')
-  const result = await pool.query<User & { password_hash: string }>('select id, email, name, password_hash from users where email = $1', [normalizedEmail])
+  const result = await pool.query<User & { password_hash: string }>('select id, email, name, plan, password_hash from users where email = $1', [normalizedEmail])
   const row = result.rows[0]
   if (!row || !(await verifyPassword(normalizedPassword, row.password_hash))) throw new Error('Invalid email or password')
-  return { id: row.id, email: row.email, name: row.name }
+  return { id: row.id, email: row.email, name: row.name, plan: row.plan }
 }
 
 export async function updateProfile(userId: string, { name }: { name: unknown }): Promise<User> {
@@ -165,7 +165,7 @@ export async function updateProfile(userId: string, { name }: { name: unknown })
   if (displayName.length < 2 || displayName.length > 60) throw new Error('Name must be between 2 and 60 characters')
 
   const result = await pool.query<User>(
-    'update users set name = $2 where id = $1 returning id, email, name',
+    'update users set name = $2 where id = $1 returning id, email, name, plan',
     [userId, displayName],
   )
   return result.rows[0]

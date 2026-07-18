@@ -1,5 +1,5 @@
 import { authTokenKey } from '../data/constants'
-import type { AppState, SettingsState, Transaction, User } from '../types'
+import type { AiChatMessage, AiUsage, AppState, SettingsState, Transaction, User } from '../types'
 
 export type AuthInput = { email: string; name?: string; password: string; mode: 'login' | 'signup' }
 
@@ -72,6 +72,53 @@ export async function importState(state: AppState) {
 
 export async function resetState() {
   return requestState('/api/reset', { method: 'POST' })
+}
+
+export async function fetchAiUsage() {
+  return request<AiUsage>('/api/ask-ai')
+}
+
+export async function streamAskAi(
+  input: { question: string; history: AiChatMessage[] },
+  handlers: { onDelta: (delta: string) => void; onUsage: (usage: AiUsage) => void },
+) {
+  const token = localStorage.getItem(authTokenKey)
+  const response = await fetch('/api/ask-ai', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    const payload = await readJson<{ error?: string }>(response)
+    throw new Error(payload.error ?? `Request failed with ${response.status}`)
+  }
+  if (!response.body) throw new Error("Couldn't get an answer right now, try again")
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let completed = false
+  while (true) {
+    const { done, value } = await reader.read()
+    buffer += decoder.decode(value, { stream: !done })
+    const events = buffer.split('\n\n')
+    buffer = events.pop() ?? ''
+    for (const block of events) {
+      const eventName = block.match(/^event:\s*(.+)$/m)?.[1]
+      const dataLine = block.match(/^data:\s*(.+)$/m)?.[1]
+      if (!eventName || !dataLine) continue
+      const data = JSON.parse(dataLine) as { delta?: string; message?: string } | AiUsage
+      if (eventName === 'usage') handlers.onUsage(data as AiUsage)
+      if (eventName === 'delta') handlers.onDelta((data as { delta?: string }).delta ?? '')
+      if (eventName === 'error') throw new Error((data as { message?: string }).message ?? "Couldn't get an answer right now, try again")
+      if (eventName === 'done') completed = true
+    }
+    if (done) break
+  }
+  if (!completed) throw new Error("Couldn't get an answer right now, try again")
 }
 
 async function requestState(path: string, init: RequestInit = {}) {

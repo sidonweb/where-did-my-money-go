@@ -29,7 +29,7 @@ export async function requireAuth(request: NextRequest): Promise<{ token: string
 
   const result = await pool.query<User>(
     `
-      select users.id, users.email, users.name
+      select users.id, users.email, users.name, users.plan
       from user_sessions
       join users on users.id = user_sessions.user_id
       where user_sessions.token = $1

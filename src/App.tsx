@@ -6,6 +6,7 @@ import {
   Filter,
   IndianRupee,
   LayoutDashboard,
+  Sparkles,
   UserRound,
   WalletCards,
 } from 'lucide-react'
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './components/ui/label'
 import { authTokenKey, initialState, monthNames, today } from './data/constants'
 import { Analysis } from './screens/Analysis'
+import { AskAi } from './screens/AskAi'
 import { Dashboard } from './screens/Dashboard'
 import { Ledger } from './screens/Ledger'
 import { Profile } from './screens/Profile'
@@ -323,9 +325,10 @@ function App() {
           </div>
         </div>
 
-        <nav className="grid grid-cols-5 gap-1 md:mt-10 md:grid-cols-1 md:gap-1.5" aria-label="Primary">
+        <nav className="grid grid-cols-6 gap-1 md:mt-10 md:grid-cols-1 md:gap-1.5" aria-label="Primary">
           <NavButton icon={<LayoutDashboard size={18} />} label="Dashboard" active={tab === 'dashboard'} onClick={() => router.push('/dashboard')} />
           <NavButton icon={<Filter size={18} />} label="Analysis" active={tab === 'analysis'} onClick={() => router.push('/analysis')} />
+          <NavButton icon={<Sparkles size={18} />} label="Ask AI" active={tab === 'ask-ai'} onClick={() => router.push('/ask-ai')} />
           <NavButton icon={<WalletCards size={18} />} label="Ledger" active={tab === 'ledger'} onClick={() => router.push('/ledger')} />
           <NavButton icon={<CalendarDays size={18} />} label="Calendar" active={tab === 'calendar'} onClick={() => router.push('/calendar')} />
           <NavButton icon={<UserRound size={18} />} label="Profile" active={tab === 'profile'} onClick={() => router.push('/profile')} />
@@ -342,7 +345,7 @@ function App() {
       <section className="min-w-0 px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:pt-7 md:pb-8">
         <header className="mb-7 flex flex-col justify-between gap-5 border-b pb-6 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-1 text-[11px] font-extrabold tracking-[.2em] text-primary uppercase">{tab === 'profile' ? 'Your workspace' : tab === 'dashboard' ? periodLabel : `${monthNames[selectedMonth]} ${selectedYear}`}</p>
+            <p className="mb-1 text-[11px] font-extrabold tracking-[.2em] text-primary uppercase">{tab === 'profile' ? 'Your workspace' : tab === 'ask-ai' ? 'Your financial copilot' : tab === 'dashboard' ? periodLabel : `${monthNames[selectedMonth]} ${selectedYear}`}</p>
             <h1 className="text-3xl font-extrabold  sm:text-4xl">{tab === 'dashboard' && usingSalaryCycle ? 'This Cycle' : getTabTitle(tab)}</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Hello, {user.name}!
@@ -360,7 +363,7 @@ function App() {
                 </SelectContent>
               </Select>
             </div>
-          ) : tab !== 'profile' && <div className="flex items-end gap-2">
+          ) : tab !== 'profile' && tab !== 'ask-ai' && <div className="flex items-end gap-2">
             <div className="grid gap-1.5">
               <Label className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">Month</Label>
               <Select value={String(selectedMonth)} onValueChange={(value) => setSelectedMonth(Number(value))}>
@@ -397,6 +400,7 @@ function App() {
             selectedYear={selectedYear}
           />
         )}
+        {tab === 'ask-ai' && <AskAi />}
         {tab === 'ledger' && (
           <Ledger
             categoryById={categoryById}
@@ -432,6 +436,7 @@ function getTabTitle(tab: Tab) {
     dashboard: 'This Month',
     ledger: 'Daily Expense Tracker',
     analysis: 'Weekly Analysis',
+    'ask-ai': 'Ask AI',
     calendar: 'Yearly Calendar',
     profile: 'Profile & Settings',
   }
@@ -440,7 +445,7 @@ function getTabTitle(tab: Tab) {
 
 function getTabFromPath(pathname: string): Tab {
   const candidate = pathname.split('/').filter(Boolean)[0]
-  return candidate === 'analysis' || candidate === 'ledger' || candidate === 'calendar' || candidate === 'profile'
+  return candidate === 'analysis' || candidate === 'ask-ai' || candidate === 'ledger' || candidate === 'calendar' || candidate === 'profile'
     ? candidate
     : 'dashboard'
 }

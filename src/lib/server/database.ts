@@ -14,7 +14,7 @@ if (!connectionString) {
 }
 
 export const pool = databaseGlobal.moneyDatabasePool ?? new Pool({ connectionString })
-const databaseVersion = 2
+const databaseVersion = 3
 
 if (process.env.NODE_ENV !== 'production') {
   databaseGlobal.moneyDatabasePool = pool
@@ -36,6 +36,7 @@ async function initializeDatabase() {
       email text not null unique,
       name text not null,
       password_hash text not null,
+      plan text not null default 'free' check (plan in ('free', 'pro')),
       created_at timestamptz not null default now()
     );
 
@@ -65,11 +66,31 @@ async function initializeDatabase() {
       updated_at timestamptz not null default now()
     );
 
+    create table if not exists ai_daily_usage (
+      user_id uuid not null references users(id) on delete cascade,
+      usage_date date not null,
+      request_count integer not null default 0 check (request_count >= 0),
+      updated_at timestamptz not null default now(),
+      primary key (user_id, usage_date)
+    );
+
+    create table if not exists ai_decline_logs (
+      id bigserial primary key,
+      user_id uuid not null references users(id) on delete cascade,
+      question_excerpt text not null,
+      reason text not null,
+      created_at timestamptz not null default now()
+    );
+
     create index if not exists transactions_date_idx on transactions (transaction_date desc);
     create index if not exists transactions_category_idx on transactions (category_id);
     create index if not exists transactions_payment_mode_idx on transactions (payment_mode);
   `)
+  await pool.query("alter table users add column if not exists plan text not null default 'free'")
+  await pool.query("alter table users drop constraint if exists users_plan_check")
+  await pool.query("alter table users add constraint users_plan_check check (plan in ('free', 'pro'))")
   await pool.query('alter table transactions add column if not exists user_id uuid references users(id) on delete cascade')
   await pool.query('create index if not exists transactions_user_id_idx on transactions (user_id)')
+  await pool.query('create index if not exists ai_decline_logs_user_created_idx on ai_decline_logs (user_id, created_at desc)')
   await pool.query('delete from user_sessions where expires_at < now()')
 }
