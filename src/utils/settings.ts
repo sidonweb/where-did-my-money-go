@@ -4,7 +4,7 @@ export const defaultIncomeCategory: Category = {
   id: 'income',
   name: 'Salary / Income',
   type: 'Income',
-  color: '#16a34a',
+  color: '#2B5D8A',
 }
 
 export function normalizeSettings(settings: SettingsState): SettingsState {

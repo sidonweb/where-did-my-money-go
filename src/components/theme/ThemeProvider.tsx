@@ -2,8 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
-type ResolvedTheme = Exclude<Theme, 'system'>
+type Theme = 'light' | 'dark'
+type ResolvedTheme = Theme
 
 interface ThemeContextValue {
   theme: Theme
@@ -12,21 +12,16 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
-const storageKey = 'theme'
-
-function systemTheme(): ResolvedTheme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
+const storageKey = 'app-theme'
 
 function applyTheme(theme: Theme): ResolvedTheme {
-  const resolvedTheme = theme === 'system' ? systemTheme() : theme
-  document.documentElement.classList.toggle('dark', resolvedTheme === 'dark')
-  document.documentElement.style.colorScheme = resolvedTheme
-  return resolvedTheme
+  document.documentElement.classList.toggle('dark', theme === 'dark')
+  document.documentElement.style.colorScheme = theme
+  return theme
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
+  const [theme, setThemeState] = useState<Theme>('light')
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light')
 
   const setTheme = useCallback((nextTheme: Theme) => {
@@ -36,16 +31,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedTheme = localStorage.getItem(storageKey)
-    setThemeState(storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system')
+    setThemeState(storedTheme === 'dark' ? 'dark' : 'light')
   }, [])
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const updateTheme = () => setResolvedTheme(applyTheme(theme))
-
-    updateTheme()
-    media.addEventListener('change', updateTheme)
-    return () => media.removeEventListener('change', updateTheme)
+    if (document.documentElement.dataset.landingActive === 'true') {
+      setResolvedTheme(theme)
+      return
+    }
+    setResolvedTheme(applyTheme(theme))
   }, [theme])
 
   const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [resolvedTheme, setTheme, theme])

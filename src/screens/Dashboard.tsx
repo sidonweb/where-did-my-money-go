@@ -7,6 +7,7 @@ import type { Category, Transaction } from '../types'
 import { compactMoney, formatDate, formatMoney } from '../utils/format'
 import { buildDailyTrend, buildMonthlyModel, typeColor } from '../utils/models'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
+import { chartTooltipContentStyle, chartTooltipItemStyle, chartTooltipLabelStyle } from '../components/ui/chart-theme'
 
 export function Dashboard({
   monthly,
@@ -60,7 +61,14 @@ export function Dashboard({
               <CartesianGrid stroke="currentColor" className="text-border" vertical={false} />
               <XAxis dataKey="label" tickLine={false} axisLine={false} />
               <YAxis tickFormatter={(value) => compactMoney(Number(value))} tickLine={false} axisLine={false} width={58} />
-              <Tooltip formatter={(value) => formatMoney(Number(value))} labelFormatter={(label) => String(label)} />
+              <Tooltip
+                contentStyle={chartTooltipContentStyle}
+                cursor={{ stroke: 'var(--muted-foreground)', strokeOpacity: 0.35 }}
+                formatter={(value) => formatMoney(Number(value))}
+                itemStyle={chartTooltipItemStyle}
+                labelFormatter={(label) => String(label)}
+                labelStyle={chartTooltipLabelStyle}
+              />
               <Area type="monotone" dataKey="spend" stroke="currentColor" className="text-foreground" fill="url(#spendGradient)" strokeWidth={2.5} />
             </AreaChart>
           </ResponsiveContainer>
@@ -83,10 +91,15 @@ export function Dashboard({
             <PieChart>
               <Pie data={monthly.categoryRows} dataKey="actual" nameKey="name" innerRadius={54} outerRadius={82} paddingAngle={2}>
                 {monthly.categoryRows.map((row) => (
-                  <Cell key={row.categoryId} fill={categoryById.get(row.categoryId)?.color ?? '#64748b'} />
+                  <Cell key={row.categoryId} fill={categoryById.get(row.categoryId)?.color ?? '#A3A3A3'} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => formatMoney(Number(value))} />
+              <Tooltip
+                contentStyle={chartTooltipContentStyle}
+                formatter={(value) => formatMoney(Number(value))}
+                itemStyle={chartTooltipItemStyle}
+                labelStyle={chartTooltipLabelStyle}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div></CardContent>

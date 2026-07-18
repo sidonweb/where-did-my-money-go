@@ -36,7 +36,7 @@ export function Setup({
           id: slugify(`category-${Date.now()}`),
           name: 'New Category',
           type: 'Need',
-          color: '#14532d',
+          color: '#2B5D8A',
         },
       ],
     })

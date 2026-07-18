@@ -138,7 +138,7 @@ export function buildYearDailyTotals(year: number, transactions: Transaction[], 
 }
 
 export function typeColor(type: BudgetType) {
-  return type === 'Need' ? '#14532d' : type === 'Want' ? '#f59e0b' : type === 'Saving' ? '#0891b2' : '#16a34a'
+  return type === 'Need' ? '#2B5D8A' : type === 'Want' ? '#7FD3FF' : type === 'Saving' ? '#374151' : '#2B5D8A'
 }
 
 export function buildBudgetCycles(transactions: Transaction[], categoryById: Map<string, Category>): BudgetCycle[] {

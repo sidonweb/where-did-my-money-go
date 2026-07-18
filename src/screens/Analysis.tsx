@@ -6,6 +6,7 @@ import { PanelHeader } from '../components/ui/PanelHeader'
 import { ProgressRow } from '../components/ui/ProgressRow'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
+import { chartTooltipContentStyle, chartTooltipItemStyle, chartTooltipLabelStyle } from '../components/ui/chart-theme'
 import { Input } from '../components/ui/Input'
 import { Label } from '../components/ui/label'
 import { spendingBudgetTypes } from '../data/constants'
@@ -98,7 +99,12 @@ export function Analysis({
               <CartesianGrid stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" tickLine={false} axisLine={false} />
               <YAxis tickFormatter={(value) => compactMoney(Number(value))} tickLine={false} axisLine={false} width={58} />
-              <Tooltip formatter={(value) => formatMoney(Number(value))} />
+              <Tooltip
+                contentStyle={chartTooltipContentStyle}
+                formatter={(value) => formatMoney(Number(value))}
+                itemStyle={chartTooltipItemStyle}
+                labelStyle={chartTooltipLabelStyle}
+              />
               <Legend />
               <Bar dataKey="spend" name="Spend" fill="var(--chart-1)" radius={[5, 5, 0, 0]} />
               <Bar dataKey="limit" name="Limit" fill="var(--chart-2)" radius={[5, 5, 0, 0]} />
@@ -110,13 +116,13 @@ export function Analysis({
 
       <Card><CardHeader><PanelHeader title="Weekly Limit" action={formatMoney(settings.weeklyLimit)} /></CardHeader><CardContent className="grid gap-4">
           {weeklyRows.map((row) => (
-            <ProgressRow key={row.label} label={row.label} actual={row.spend} budget={row.limit} color={row.spend > row.limit ? '#e11d48' : '#14532d'} />
+            <ProgressRow key={row.label} label={row.label} actual={row.spend} budget={row.limit} color={row.spend > row.limit ? '#2B5D8A' : '#7FD3FF'} />
           ))}
       </CardContent></Card>
 
       <Card><CardHeader><PanelHeader title="Payment Modes" action={`${paymentRows.length} active`} /></CardHeader><CardContent className="grid gap-4">
           {paymentRows.map((row) => (
-            <ProgressRow key={row.mode} label={row.mode} actual={row.amount} budget={paymentRows[0]?.amount || 1} color="#4f46e5" compact />
+            <ProgressRow key={row.mode} label={row.mode} actual={row.amount} budget={paymentRows[0]?.amount || 1} color="#2B5D8A" compact />
           ))}
       </CardContent></Card>
     </div>

@@ -6,16 +6,17 @@ import { defaultIncomeCategory } from '../utils/settings'
 export const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 export const spendingBudgetTypes: SpendingBudgetType[] = ['Need', 'Want', 'Saving']
 export const budgetTypes: BudgetType[] = [...spendingBudgetTypes, 'Income']
-export const appName = 'where did my money go?'
-export const authTokenKey = 'where-did-my-money-go-auth-token'
+export const appName = 'Ledgr.'
+export const authTokenKey = 'ledgr-auth-token'
+export const legacyAuthTokenKey = 'where-did-my-money-go-auth-token'
 export const today = new Date()
 
 export const defaultCategories: Category[] = [
-  { id: 'life-infra', name: 'Life Infrastructure', type: 'Need', color: '#14532d' },
-  { id: 'future-me', name: 'Future Me', type: 'Saving', color: '#0891b2' },
-  { id: 'performance-growth', name: 'Performance & Growth', type: 'Need', color: '#4f46e5' },
-  { id: 'relationships', name: 'Relationships & Generosity', type: 'Want', color: '#e11d48' },
-  { id: 'lifestyle', name: 'Lifestyle Enjoyment', type: 'Want', color: '#f59e0b' },
+  { id: 'life-infra', name: 'Life Infrastructure', type: 'Need', color: '#2B5D8A' },
+  { id: 'future-me', name: 'Future Me', type: 'Saving', color: '#A3A3A3' },
+  { id: 'performance-growth', name: 'Performance & Growth', type: 'Need', color: '#374151' },
+  { id: 'relationships', name: 'Relationships & Generosity', type: 'Want', color: '#111827' },
+  { id: 'lifestyle', name: 'Lifestyle Enjoyment', type: 'Want', color: '#7FD3FF' },
   defaultIncomeCategory,
 ]
 

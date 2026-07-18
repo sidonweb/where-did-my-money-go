@@ -1,6 +1,6 @@
-# Contributing to Where Did My Money Go?
+# Contributing to Ledgr.
 
-Thank you for helping improve Where Did My Money Go? Contributions of all sizes are welcome, including bug fixes, documentation, accessibility improvements, tests, UI refinements, and new features.
+Thank you for helping improve Ledgr. Contributions of all sizes are welcome, including bug fixes, documentation, accessibility improvements, tests, UI refinements, and new features.
 
 ## Community Expectations
 

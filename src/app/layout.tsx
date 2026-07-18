@@ -1,13 +1,27 @@
 import type { Metadata, Viewport } from 'next'
+import { Space_Grotesk, Space_Mono } from 'next/font/google'
 import Script from 'next/script'
 import type { ReactNode } from 'react'
 import { Providers } from './providers'
 import './globals.css'
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-space-mono',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
-  title: 'Where did my money go?',
-  description: 'A mobile-first personal finance tracker for daily expenses, budgets, and weekly analysis.',
-  applicationName: 'Where did my money go?',
+  title: 'Ledgr • Personal finance clarity',
+  description: 'Track daily spending, plan around your real salary cycle, and see where your money is going before the month ends.',
+  applicationName: 'Ledgr.',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -17,11 +31,14 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Money Go?' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Ledgr.' },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#111827',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+    { media: '(prefers-color-scheme: dark)', color: '#111111' },
+  ],
   width: 'device-width',
   initialScale: 1,
 }
@@ -29,9 +46,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
         <Script id="theme-init" strategy="beforeInteractive">
-          {`try{const t=localStorage.getItem('theme')||'system';const d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch{}`}
+          {`try{const signedIn=Boolean(localStorage.getItem('ledgr-auth-token')||localStorage.getItem('where-did-my-money-go-auth-token'));const d=signedIn&&localStorage.getItem('app-theme')==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch{}`}
         </Script>
         <Providers>{children}</Providers>
       </body>

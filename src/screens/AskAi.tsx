@@ -84,7 +84,7 @@ export function AskAi() {
           <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><Sparkles size={18} /></div>
           <div className="min-w-0">
             <h2 className="font-bold">Ask about your money</h2>
-            <p className="truncate text-xs text-muted-foreground">Answers are grounded in your WDMMG data</p>
+            <p className="truncate text-xs text-muted-foreground">Answers are grounded in your Ledgr. data</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">

@@ -4,7 +4,6 @@ import { endOfMonth, format, isWithinInterval, parseISO } from 'date-fns'
 import {
   CalendarDays,
   Filter,
-  IndianRupee,
   LayoutDashboard,
   Sparkles,
   UserRound,
@@ -15,10 +14,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LandingAuth } from './components/layout/LandingAuth'
 import { LaunchScreen } from './components/layout/LaunchScreen'
+import { BrandWordmark } from './components/layout/BrandWordmark'
 import { NavButton } from './components/ui/NavButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/Select'
 import { Label } from './components/ui/label'
-import { authTokenKey, initialState, monthNames, today } from './data/constants'
+import { authTokenKey, initialState, legacyAuthTokenKey, monthNames, today } from './data/constants'
 import { Analysis } from './screens/Analysis'
 import { AskAi } from './screens/AskAi'
 import { Dashboard } from './screens/Dashboard'
@@ -46,7 +46,12 @@ function App() {
   const pathname = usePathname()
   const router = useRouter()
   const [state, setState] = useState<AppState>(initialState)
-  const [authToken, setAuthToken] = useState(() => typeof window === 'undefined' ? '' : localStorage.getItem(authTokenKey) ?? '')
+  const [authToken, setAuthToken] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    const token = localStorage.getItem(authTokenKey) ?? localStorage.getItem(legacyAuthTokenKey) ?? ''
+    if (token && !localStorage.getItem(authTokenKey)) localStorage.setItem(authTokenKey, token)
+    return token
+  })
   const [user, setUser] = useState<User | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const tab = getTabFromPath(pathname ?? '/')
@@ -78,6 +83,7 @@ function App() {
       .catch((error: unknown) => {
         if (cancelled) return
         localStorage.removeItem(authTokenKey)
+        localStorage.removeItem(legacyAuthTokenKey)
         setAuthToken('')
         setUser(null)
         setApiStatus('offline')
@@ -226,7 +232,7 @@ function App() {
   }
 
   function exportJson() {
-    downloadFile(`where-did-my-money-go-${format(new Date(), 'yyyy-MM-dd')}.json`, JSON.stringify(state, null, 2), 'application/json')
+    downloadFile(`ledgr-${format(new Date(), 'yyyy-MM-dd')}.json`, JSON.stringify(state, null, 2), 'application/json')
   }
 
   function exportCsv() {
@@ -277,6 +283,7 @@ function App() {
     try {
       const payload = await authenticate(input)
       localStorage.setItem(authTokenKey, payload.token)
+      localStorage.removeItem(legacyAuthTokenKey)
       setAuthToken(payload.token)
       setUser(payload.user)
       setState(payload.state)
@@ -293,6 +300,7 @@ function App() {
   async function handleLogout() {
     await logout().catch(() => undefined)
     localStorage.removeItem(authTokenKey)
+    localStorage.removeItem(legacyAuthTokenKey)
     setAuthToken('')
     setUser(null)
     setState(initialState)
@@ -316,13 +324,8 @@ function App() {
   return (
     <main className="min-h-screen bg-background md:grid md:grid-cols-[248px_minmax(0,1fr)]">
       <aside className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 p-2 pb-[calc(.5rem+env(safe-area-inset-bottom))] backdrop-blur-xl md:sticky md:top-0 md:h-screen md:border-t-0 md:border-r md:p-5">
-        <div className="hidden items-center gap-3 md:flex">
-          <div className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <IndianRupee size={22} />
-          </div>
-          <div className="min-w-0">
-            <strong className="block truncate text-sm font-bold text-foreground">WDMMG</strong>
-          </div>
+        <div className="hidden md:flex">
+          <BrandWordmark className="text-2xl text-foreground" />
         </div>
 
         <nav className="grid grid-cols-6 gap-1 md:mt-10 md:grid-cols-1 md:gap-1.5" aria-label="Primary">

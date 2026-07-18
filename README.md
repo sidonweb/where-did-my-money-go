@@ -1,4 +1,4 @@
-# Where Did My Money Go?
+# Ledgr.
 
 A mobile-first personal finance tracker for recording daily transactions, planning with the 50/30/20 rule, and understanding where income goes across calendar months or salary-to-salary budget cycles.
 

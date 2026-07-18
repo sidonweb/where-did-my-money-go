@@ -1,13 +1,9 @@
-import { IndianRupee } from 'lucide-react'
-import { Skeleton } from '../ui/Skeleton'
+import { BrandWordmark } from './BrandWordmark'
 
 export function LaunchScreen() {
   return (
-    <main className="grid min-h-screen place-content-center justify-items-center gap-4 bg-background text-sm font-semibold text-muted-foreground">
-      <div className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-        <IndianRupee size={24} />
-      </div>
-      <div className="grid w-72 gap-2"><Skeleton className="h-3" /><Skeleton className="h-3" /><Skeleton className="h-3" /></div>
+    <main className="grid min-h-screen place-content-center bg-background text-foreground">
+      <BrandWordmark animated className="text-4xl" />
     </main>
   )
 }
